@@ -22,7 +22,7 @@ class Pakka {
     }
 
     otaKortti() {
-        return this.pakka.splice(0, 1)[0];
+        return this.pakka.shift();
     }
 
     sekoita() {
