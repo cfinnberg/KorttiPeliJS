@@ -1,0 +1,136 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: aliceblue;
+    background: url(../images/poker.jpg);
+    background-size: cover;
+}
+
+#container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background-color: rgba(255,255,255,0.8);
+    padding: 1rem;
+    border-radius: 10px;
+}
+
+h1 {
+    font-family: Verdana;
+    border: 1px dashed;
+    border-radius: 15px;
+    padding: 5px;
+    text-align:center;
+}
+
+#toppanel {
+    display: flex;
+}
+
+form {
+    font-size: 1.2rem;
+    font-family: Verdana;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 1rem;
+    display: inline-block;
+    margin-right: 1rem;
+    position: relative;
+}
+
+input {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+form p {
+    margin-bottom: 0;
+    text-align: center;
+    position: absolute;
+    bottom: 1rem;
+    width: calc(100% - 1rem);
+}
+
+form p input {
+    margin: 0;
+    border-radius: 5px;
+}
+
+#minus, #plus, #bet {
+    line-height: 1.8rem;
+}
+#bet {
+    /* font: 30px verdana; */
+    width: 3rem;
+    text-align: center;
+}
+
+#minus, #plus {
+    /* font: 2rem verdana; */
+    cursor: pointer;
+}
+
+#minus {
+    border-radius: 10px 0 0 10px;
+}
+
+#plus {
+    border-radius: 0 10px 10px 0;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+nav p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+#console {
+    flex-grow: 1;
+    border-radius: 10px;
+    padding: 1rem;
+    overflow: scroll;
+    font-size: 1rem;
+    resize: none;
+}
+
+#changeCards {
+    font-size: 1.5rem;
+    border-radius: 10px;
+    background-color: white;
+}
+
+#cards {
+    display: flex;
+}
+
+#cards.disabled {
+    filter: brightness(0.5);
+}
+
+.card {
+    width: 200px;
+    margin-right: 1rem;
+    border-radius: 8px;
+    box-shadow: 5px 5px 5px #999;
+}
+
+.card:last-child {
+    margin-right: 0;
+}
+
+.selected {
+    filter: brightness(0.3);
+}
+
+.card img {
+    width: 100%;
+    display: block;
+}

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fi">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./css/style.css">
+    <script src="js/pakka.js"></script>
+    <script src="js/pelaaja.js"></script>
+    <script src="js/game.js"></script>
+    <title>Korttipeli</title>
+</head>
+
+<body>
+    <div id="container">
+        <h1>Tervetuloa pelaamaan korttipeliä</h1>
+    
+        <div id="toppanel">
+            <form id="lomake" autocomplete="off">
+                <label for="nameInput">Nimi: </label>
+                <input id="nameInput" type="text" name="firstName" placeholder="Anna nimesi">
+                <br>
+        
+                <label>Panos:</label>
+                <div style="display: inline-flex;">
+                    <input type="button" id="minus" value="-">
+                    <input id="bet" readonly value="5">
+                    <input type="button" id="plus" value="+">
+                </div>
+                <br>
+        
+                <p>
+                    <input type="submit" disabled id="startButton" value="Aloita peli">
+                </p>
+            </form>
+            <textarea id="console" cols="30" rows="10" readonly></textarea>
+        </div>
+    
+        <nav>
+            <button disabled id="changeCards">Laske / Ratkaise</button>
+            <p>Rahat: <span id="money"></span></p>
+        </nav>
+    
+        <div id="cards" class="disabled">
+            <div class="card"><img src="" alt=""></div>
+            <div class="card"><img src="" alt=""></div>
+            <div class="card"><img src="" alt=""></div>
+            <div class="card"><img src="" alt=""></div>
+            <div class="card"><img src="" alt=""></div>
+        </div>
+    </div>
+
+    <script>
+        let nameElem = document.getElementById('nameInput');
+        let minusElem = document.getElementById('minus');
+        let plusElem = document.getElementById('plus');
+        let betElem = document.getElementById('bet');
+        let startElem = document.getElementById('startButton');
+        let cardsElem = document.getElementById('cards');
+        let formElem = document.getElementById('lomake');
+        let consoleElem = document.getElementById('console');
+        let changeElem = document.getElementById('changeCards');
+        let moneyElem = document.getElementById('money');
+        let pakka;
+        let pelaaja;
+
+        nameElem.addEventListener('input', function (){
+            if (nameElem.value) {
+                // nameElem ei ole tyhjä
+                startElem.disabled = false; 
+            } else {
+                // nameElem on tyhjä
+                startElem.disabled = true;
+            }
+        });
+
+        minusElem.addEventListener('click', function (){
+            betElem.value -= 1;
+            if (betElem.value == 9) {
+                plusElem.disabled = false;
+            } else if (betElem.value == 1) {
+                this.disabled = true;
+            }
+        });
+
+        plusElem.addEventListener('click', function (){
+            betElem.value = Number(betElem.value) + 1;
+            if (betElem.value == 10) {
+                this.disabled = true;
+            } else if (betElem.value == 2) {
+                minusElem.disabled = false;
+            }
+        });
+
+        function updateCards(käsi) {
+            for (let i=0; i < cardsElem.children.length; i++) {
+                let cardElem = cardsElem.children[i];
+                let kuvaElem = cardElem.children[0];
+                kuvaElem.src = `images/${käsi[i] + 1}.png`
+            }
+
+            // Array.from(cardsElem.children).forEach((cardElem, i) => {
+            //     cardElem.children[0].src = `images/${käsi[i] + 1}.png`
+            // });
+        }
+
+        function writeLog(teksti) {
+            consoleElem.innerHTML += teksti + '\n' ;
+            consoleElem.scrollTop = consoleElem.scrollHeight;
+        }
+
+        function enableGameUI() {
+            startElem.disabled = true;
+            changeElem.disabled = false;
+            cardsElem.classList.remove('disabled');
+            nameElem.disabled = true;
+            minusElem.disabled = true;
+            plusElem.disabled = true;
+        }
+
+        function disableGameUI() {
+            startElem.disabled = false;
+            changeElem.disabled = true;
+            cardsElem.classList.add('disabled');
+            nameElem.disabled = false;
+            minusElem.disabled = false;
+            plusElem.disabled = false;
+        }
+
+        function writeKäsi(käsi) {
+            writeLog('Pelaaja on saanut korttia: ' + käsi);
+            käsi.forEach((kortti, i) => {
+                let maa = Pakka.getMaa(kortti);
+                let numero = Pakka.getNumero(kortti);
+                writeLog(`Kortti ${i}: ${numero} ${maa}`);
+            });
+        }
+
+        // Aloita peli
+        formElem.addEventListener('submit', function(event){
+            event.preventDefault();
+            if (pakka === undefined) {
+                pakka = new Pakka();
+            } else {
+                pakka.sekoita();
+            }
+            if (pelaaja === undefined) {
+                pelaaja = new Pelaaja(nameElem.value, 100);
+            } 
+            let panos = Number(betElem.value);
+            writeLog(`Panos on ${panos}`);
+            pelaaja.muutaRahaa(-panos);
+            moneyElem.innerHTML = pelaaja.raha;
+            pelaaja.lisätäKäsi( pakka.jaaKäsi(5) );
+            writeKäsi(pelaaja.käsi);
+            enableGameUI();
+            updateCards(pelaaja.käsi);
+        });
+
+        // Kortit (click)
+        Array.from(cardsElem.children).forEach((cardElem) => {
+            cardElem.addEventListener('click', function() {
+                if (cardsElem.classList.contains('disabled')) {
+                    return
+                }
+                this.classList.toggle('selected');
+                if (checkSelected()) {
+                    changeElem.innerHTML = "Vaihda"
+                } else {
+                    changeElem.innerHTML = "Laske / Ratkaise"
+                }
+            });
+        });
+
+        function checkSelected() {
+            return Array.from(cardsElem.children).some(cardElem => {
+                return cardElem.classList.contains('selected')
+            });
+        }
+
+        // Laske / Ratkaise / Vaihda
+        changeElem.addEventListener('click', () => {
+            if (checkSelected()) {
+                let selectedCards = [];
+                Array.from(cardsElem.children).forEach((cardElem, sijainti) => {
+                    if (cardElem.classList.contains('selected')) {
+                        selectedCards.push(sijainti);
+                        cardElem.classList.remove('selected');
+                    }
+                });
+                let newCards = pakka.jaaKäsi(selectedCards.length);
+                let oldCards = pelaaja.vaihdaKortit(selectedCards, newCards);
+                writeLog(`Vaihdetut kortit: ${oldCards.join(', ')}`);
+                writeKäsi(pelaaja.käsi);
+                updateCards(pelaaja.käsi);
+            }
+            voitto = Game.checkResults(pelaaja.käsi, Number(betElem.value));
+            pelaaja.muutaRahaa(voitto);
+            moneyElem.innerHTML = pelaaja.raha;
+            pakka.palautaPakkaan(pelaaja.palautaKäsi());
+            disableGameUI();
+            changeElem.innerHTML = "Laske / Ratkaise"
+        });
+
+    </script>
+</body>
+
+</html>
