@@ -1,206 +1,169 @@
 <!DOCTYPE html>
 <html lang="fi">
-    
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="./css/style.css">
+    <title>Korttipeli</title>
     <script src="js/pakka.js"></script>
     <script src="js/pelaaja.js"></script>
     <script src="js/game.js"></script>
-    <title>Korttipeli</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 </head>
 
 <body>
     <div id="container">
         <h1>Tervetuloa pelaamaan korttipeliä</h1>
-    
+
         <div id="toppanel">
             <form id="lomake" autocomplete="off">
                 <label for="nameInput">Nimi: </label>
-                <input id="nameInput" type="text" name="firstName" placeholder="Anna nimesi">
+                <input id="nameInput" type="text" name="firstName" placeholder="Anna nimesi" v-model="nimi" :disabled="pelimenossa">
                 <br>
-        
+
                 <label>Panos:</label>
                 <div style="display: inline-flex;">
-                    <input type="button" id="minus" value="-">
-                    <input id="bet" readonly value="5">
-                    <input type="button" id="plus" value="+">
+                    <input type="button" id="minus" value="-" :disabled="panos==0 || pelimenossa" @click="panosminus">
+                    <input id="bet" readonly :value="panos" :disabled="pelimenossa">
+                    <input type="button" id="plus" value="+" :disabled="panos==10 || pelimenossa" @click="panosplus">
                 </div>
                 <br>
-        
+
                 <p>
-                    <input type="submit" disabled id="startButton" value="Aloita peli">
+                    <input type="submit" :disabled="nimi=='' || pelimenossa" id="startButton" value="Aloita peli" @click.prevent="aloitaPeli">
                 </p>
             </form>
-            <textarea id="console" cols="30" rows="10" readonly></textarea>
+            <textarea id="console" cols="30" rows="10" readonly>{{ log }}</textarea>
         </div>
-    
+
         <nav>
-            <button disabled id="changeCards">Laske / Ratkaise</button>
-            <p>Rahat: <span id="money"></span></p>
+            <button :disabled="!pelimenossa" id="changeCards" @click="vaihtaJaRatkaise">{{ viesti }}</button>
+            <p>Rahat: <span id="money">{{ raha }}</span></p>
         </nav>
-    
-        <div id="cards" class="disabled">
-            <div class="card"><img src="" alt=""></div>
-            <div class="card"><img src="" alt=""></div>
-            <div class="card"><img src="" alt=""></div>
-            <div class="card"><img src="" alt=""></div>
-            <div class="card"><img src="" alt=""></div>
+
+        <div id="cards" :class="{'disabled':!pelimenossa}">
+            <korttielem v-for="(kortti,index) in käsi" :index="index" :key="index" :valittu="valitut[index]" :numero="käsi[index]" @klik="valitseKortti"></korttielem>
         </div>
+
     </div>
 
     <script>
-        let nameElem = document.getElementById('nameInput');
-        let minusElem = document.getElementById('minus');
-        let plusElem = document.getElementById('plus');
-        let betElem = document.getElementById('bet');
-        let startElem = document.getElementById('startButton');
-        let cardsElem = document.getElementById('cards');
-        let formElem = document.getElementById('lomake');
-        let consoleElem = document.getElementById('console');
-        let changeElem = document.getElementById('changeCards');
-        let moneyElem = document.getElementById('money');
-        let pakka;
-        let pelaaja;
+        let pakka = new Pakka();
+        let pelaaja = new Pelaaja('', 100);
+        const korttienMäärä = 5;
 
-        nameElem.addEventListener('input', function (){
-            if (nameElem.value) {
-                // nameElem ei ole tyhjä
-                startElem.disabled = false; 
-            } else {
-                // nameElem on tyhjä
-                startElem.disabled = true;
+        Vue.component('korttielem',{
+            props: ['numero','valittu', 'index'],
+            template: `
+                <div class="card" :class="{'selected': valittu}" @click="$emit('klik', index)">
+                    <img :src="korttiKuva(numero)">
+                </div>`,
+            methods: {
+                korttiKuva(num) {
+                    return `images/${num + 1}.png`
+                },
             }
         });
 
-        minusElem.addEventListener('click', function (){
-            betElem.value -= 1;
-            if (betElem.value == 9) {
-                plusElem.disabled = false;
-            } else if (betElem.value == 1) {
-                this.disabled = true;
-            }
-        });
 
-        plusElem.addEventListener('click', function (){
-            betElem.value = Number(betElem.value) + 1;
-            if (betElem.value == 10) {
-                this.disabled = true;
-            } else if (betElem.value == 2) {
-                minusElem.disabled = false;
-            }
-        });
+        let app = new Vue({
+            el: '#container',
+            data: {
+                panos: 5,
+                nimi: pelaaja.nimi,
+                pelimenossa: false,
+                raha: pelaaja.raha,
+                käsi: new Array(korttienMäärä).fill(39), // [39, 39, 39, 39, 39],
+                valitut: new Array(korttienMäärä).fill(false), //[false, false, false, false, false],
+                log: '',
+            },
 
-        function updateCards(käsi) {
-            for (let i=0; i < cardsElem.children.length; i++) {
-                let cardElem = cardsElem.children[i];
-                let kuvaElem = cardElem.children[0];
-                kuvaElem.src = `images/${käsi[i] + 1}.png`
-            }
-
-            // Array.from(cardsElem.children).forEach((cardElem, i) => {
-            //     cardElem.children[0].src = `images/${käsi[i] + 1}.png`
-            // });
-        }
-
-        function writeLog(teksti) {
-            consoleElem.innerHTML += teksti + '\n' ;
-            consoleElem.scrollTop = consoleElem.scrollHeight;
-        }
-
-        function enableGameUI() {
-            startElem.disabled = true;
-            changeElem.disabled = false;
-            cardsElem.classList.remove('disabled');
-            nameElem.disabled = true;
-            minusElem.disabled = true;
-            plusElem.disabled = true;
-        }
-
-        function disableGameUI() {
-            startElem.disabled = false;
-            changeElem.disabled = true;
-            cardsElem.classList.add('disabled');
-            nameElem.disabled = false;
-            minusElem.disabled = false;
-            plusElem.disabled = false;
-        }
-
-        function writeKäsi(käsi) {
-            writeLog('Pelaaja on saanut korttia: ' + käsi);
-            käsi.forEach((kortti, i) => {
-                let maa = Pakka.getMaa(kortti);
-                let numero = Pakka.getNumero(kortti);
-                writeLog(`Kortti ${i}: ${numero} ${maa}`);
-            });
-        }
-
-        // Aloita peli
-        formElem.addEventListener('submit', function(event){
-            event.preventDefault();
-            if (pakka === undefined) {
-                pakka = new Pakka();
-            } else {
-                pakka.sekoita();
-            }
-            if (pelaaja === undefined) {
-                pelaaja = new Pelaaja(nameElem.value, 100);
-            } 
-            let panos = Number(betElem.value);
-            writeLog(`Panos on ${panos}`);
-            pelaaja.muutaRahaa(-panos);
-            moneyElem.innerHTML = pelaaja.raha;
-            pelaaja.lisätäKäsi( pakka.jaaKäsi(5) );
-            writeKäsi(pelaaja.käsi);
-            enableGameUI();
-            updateCards(pelaaja.käsi);
-        });
-
-        // Kortit (click)
-        Array.from(cardsElem.children).forEach((cardElem) => {
-            cardElem.addEventListener('click', function() {
-                if (cardsElem.classList.contains('disabled')) {
-                    return
+            computed: {
+                viesti() {
+                    if (this.valitut.includes(true)) return 'Vaihta'
+                    else return 'Laske / Ratkaise'
                 }
-                this.classList.toggle('selected');
-                if (checkSelected()) {
-                    changeElem.innerHTML = "Vaihda"
-                } else {
-                    changeElem.innerHTML = "Laske / Ratkaise"
-                }
-            });
-        });
+            },
 
-        function checkSelected() {
-            return Array.from(cardsElem.children).some(cardElem => {
-                return cardElem.classList.contains('selected')
-            });
-        }
+            mounted() {
+                this.consoleElem = this.$el.querySelector('#console')
+            },
 
-        // Laske / Ratkaise / Vaihda
-        changeElem.addEventListener('click', () => {
-            if (checkSelected()) {
-                let selectedCards = [];
-                Array.from(cardsElem.children).forEach((cardElem, sijainti) => {
-                    if (cardElem.classList.contains('selected')) {
-                        selectedCards.push(sijainti);
-                        cardElem.classList.remove('selected');
+            updated: function() {
+                this.scrollToEnd();
+            },
+
+            methods: {
+                panosminus() {
+                    this.panos--
+                },
+
+                panosplus() {
+                    this.panos++
+                },
+
+                aloitaPeli() {
+                    this.pelimenossa = true;
+                    pakka.sekoita();
+                    this.writeLog(`Panos on ${this.panos}`);
+                    pelaaja.muutaRahaa(-this.panos);
+                    this.raha = pelaaja.raha;
+                    pelaaja.lisätäKäsi(pakka.jaaKäsi(korttienMäärä));
+                    this.käsi = pelaaja.käsi;
+                    this.writeKäsi();
+                },
+
+                writeLog(teksti) {
+                    this.log += teksti + '\n';
+                },
+
+                scrollToEnd() {
+                    this.consoleElem.scrollTop = this.consoleElem.scrollHeight;
+                },
+
+                writeKäsi() {
+                    const kirjaimet = ['J', 'Q', 'K'];
+
+                    this.writeLog(`Pelaaja ${this.nimi} on saanut korttia: ${this.käsi}`);
+                    this.käsi.forEach((kortti, i) => {
+                        let numero = Pakka.getNumero(kortti);
+                        if (numero > 10) {
+                            numero = kirjaimet[numero - 11]
+                        };
+                        this.writeLog(`Kortti ${i}: ${numero} ${Pakka.getMaa(kortti)}`);
+                    });
+                },
+
+                valitseKortti(index) {
+                    if (!this.pelimenossa) return;
+                    Vue.set(this.valitut, index, !this.valitut[index]);
+                },
+
+                vaihtaJaRatkaise() {
+                    if (this.valitut.includes(true)) {
+                        let selectedCards = [];
+                        this.valitut.forEach((valittu, sijainti) => {
+                            if (valittu) {
+                                selectedCards.push(sijainti);
+                                Vue.set(this.valitut, sijainti, false);
+                            }
+                        });
+                        let newCards = pakka.jaaKäsi(selectedCards.length);
+                        let oldCards = pelaaja.vaihdaKortit(selectedCards, newCards);
+                        pakka.palautaPakkaan(oldCards);
+                        this.writeLog(`Vaihdetut kortit: ${oldCards.join(', ')}`);
+                        this.writeKäsi(pelaaja.käsi);
                     }
-                });
-                let newCards = pakka.jaaKäsi(selectedCards.length);
-                let oldCards = pelaaja.vaihdaKortit(selectedCards, newCards);
-                writeLog(`Vaihdetut kortit: ${oldCards.join(', ')}`);
-                writeKäsi(pelaaja.käsi);
-                updateCards(pelaaja.käsi);
+                    let voitto = Game.checkResults(pelaaja.käsi, Number(this.panos));
+                    pelaaja.muutaRahaa(voitto);
+                    this.writeLog(`Voitto: ${voitto}\n`);
+                    this.raha = pelaaja.raha;
+                    pakka.palautaPakkaan(pelaaja.palautaKäsi());
+                    this.pelimenossa = false;
+                }
             }
-            voitto = Game.checkResults(pelaaja.käsi, Number(betElem.value));
-            pelaaja.muutaRahaa(voitto);
-            moneyElem.innerHTML = pelaaja.raha;
-            pakka.palautaPakkaan(pelaaja.palautaKäsi());
-            disableGameUI();
-            changeElem.innerHTML = "Laske / Ratkaise"
         });
 
     </script>
