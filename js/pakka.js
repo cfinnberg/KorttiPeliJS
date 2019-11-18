@@ -1,20 +1,20 @@
 class Pakka {
     constructor() {
         this.pakka = [];
-        for (let i=0; i<=51; i++) {
+        for (let i = 0; i <= 51; i++) {
             this.pakka.push(i);
         }
         this.sekoita();
     }
-    
+
     palautaPakkaan(kortit) {
-        this.pakka.concat(kortit);
+        this.pakka = this.pakka.concat(kortit);
     }
 
     jaaKäsi(määrä) {
         let käsi = [];
 
-        for (let i=1; i<=määrä; i++) {
+        for (let i = 1; i <= määrä; i++) {
             käsi.push(this.otaKortti());
         }
 
@@ -22,13 +22,13 @@ class Pakka {
     }
 
     otaKortti() {
-        return this.pakka.splice(0,1)[0];
+        return this.pakka.splice(0, 1)[0];
     }
 
     sekoita() {
         for (let i = this.pakka.length - 1; i > 0; i--) {
             let j = Math.floor(Math.random() * (i + 1)); // random index from 0 to i
-        
+
             // swap elements array[i] and array[j]
             // we use "destructuring assignment" syntax to achieve that
             // you'll find more details about that syntax in later chapters
@@ -40,9 +40,9 @@ class Pakka {
 
     static getMaa(kortti) {
         // kortti on Numero 0-51
-        const maat=['Pata', 'Ruutu', 'Risti', 'Hertta'];
+        const maat = ['Pata', 'Ruutu', 'Risti', 'Hertta'];
 
-        return maat[ Math.floor(kortti / 13) ];
+        return maat[Math.floor(kortti / 13)];
     }
 
     static getNumero(kortti) {
